@@ -6,6 +6,7 @@ from tqdm import tqdm
 import torch
 import torchvision
 from tabulate import tabulate
+import wandb
 
 import argparse
 import time
@@ -14,6 +15,7 @@ from competition_toolkit.dataloader import create_dataloader
 from utils import create_run_dir, store_model_weights, record_scores
 
 from competition_toolkit.eval_functions import calculate_score
+
 
 
 def test(opts, dataloader, model, lossfn):
@@ -57,9 +59,13 @@ def test(opts, dataloader, model, lossfn):
 
 def train(opts):
     device = opts["device"]
+    print(device)
 
     # The current model should be swapped with a different one of your choice
-    model = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=opts["num_classes"])
+    # model = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=opts["num_classes"])
+    # model = torchvision.models.segmentation.fcn_resnet101(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
+
+    model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
 
     if opts["task"] == 2:
         new_conv1 = torch.nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
@@ -97,6 +103,7 @@ def train(opts):
             output = model(image)["out"]
 
             loss = lossfn(output, label)
+            wandb.log({"loss":loss})
 
             optimizer.zero_grad()
             loss.backward()
@@ -105,9 +112,11 @@ def train(opts):
             lossitem = loss.item()
             output = torch.argmax(torch.softmax(output, dim=1), dim=1)
             if device != "cpu":
+                # print("using cpu")
                 trainmetrics = calculate_score(output.detach().cpu().numpy().astype(np.uint8),
                                                label.detach().cpu().numpy().astype(np.uint8))
             else:
+                print("using cpu")
                 trainmetrics = calculate_score(output.detach().numpy().astype(np.uint8),
                                                label.detach().numpy().astype(np.uint8))
 
@@ -121,6 +130,9 @@ def train(opts):
         trainiou = round(ioutotal.mean(), 4)
         trainbiou = round(bioutotal.mean(), 4)
         trainscore = round(scoretotal.mean(), 4)
+
+        wandb.log({"loss":loss, "testloss": testloss, "trainloss": trainloss, "testiou": testiou, "testbiou": testbiou,"trainbiou":trainbiou, "trainiou": trainiou, "trainscore": trainscore})
+        wandb.watch(model)
 
         if testscore > bestscore:
             bestscore = testscore
@@ -153,15 +165,26 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("Training a segmentation model")
 
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs for training")
+    parser.add_argument("--epochs", type=int, default=80, help="Number of epochs for training")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate used during training")
     parser.add_argument("--config", type=str, default="config/data.yaml", help="Configuration file to be used")
-    parser.add_argument("--device", type=str, default="cpu")
+    # parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--task", type=int, default=1)
     parser.add_argument("--data_ratio", type=float, default=1.0,
                         help="Percentage of the whole dataset that is used")
+    parser.add_argument("--name", type=str, default="run_seg")
 
     args = parser.parse_args()
+    wandb.init(project="BuildingSeg",
+               entity="lennylei",
+               config={
+                   "epochs": args.epochs,
+                   "lr":args.lr
+               }
+               )
+
+
+    wandb.run.name = args.name
 
     # Import config
     opts = load(open(args.config, "r"), Loader)
@@ -171,7 +194,10 @@ if __name__ == "__main__":
         opts = opts | vars(args)
     except Exception as e:
         opts = {**opts, **vars(args)}
-
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
+    device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
+    opts["device"] = device
     print("Opts:", opts)
 
     rundir = create_run_dir(opts)
@@ -179,3 +205,4 @@ if __name__ == "__main__":
     dump(opts, open(os.path.join(rundir, "opts.yaml"), "w"), Dumper)
 
     train(opts)
+    wandb.finish()
