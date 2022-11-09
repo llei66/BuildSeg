@@ -7,7 +7,7 @@ import torch
 import torchvision
 from tabulate import tabulate
 import wandb
-
+from torch import nn
 import argparse
 import time
 
@@ -20,6 +20,26 @@ from models import unet_resnet18
 from models.geoseg.losses import *
 # from models.geoseg.datasets.uavid_dataset import *
 from models.geoseg.models.UNetFormer import UNetFormer
+import ipdb
+
+def cal_metrics(output, label, use_aux_loss):
+    # use_aux_loss = True
+    # ipdb.set_trace()
+
+    if use_aux_loss:
+        output = nn.Softmax(dim=1)(output[0])
+    else:
+        output = nn.Softmax(dim=1)(output)
+    output = output.argmax(dim=1)
+    if device != "cpu":
+        # print("using cpu")
+        metrics = calculate_score(output.detach().cpu().numpy().astype(np.uint8),
+                                       label.detach().cpu().numpy().astype(np.uint8))
+    else:
+        print("using cpu")
+        metrics = calculate_score(output.detach().numpy().astype(np.uint8),
+                                       label.detach().numpy().astype(np.uint8))
+    return metrics
 
 def test(opts, dataloader, model, lossfn):
     model.eval()
@@ -38,15 +58,11 @@ def test(opts, dataloader, model, lossfn):
 
         # output = model(image)["out"]
         output = model(image)
+        # ipdb.set_trace()
 
         loss = lossfn(output, label).item()
-
-        output = torch.argmax(torch.softmax(output, dim=1), dim=1)
-        if device != "cpu":
-            metrics = calculate_score(output.detach().cpu().numpy().astype(np.uint8),
-                                      label.detach().cpu().numpy().astype(np.uint8))
-        else:
-            metrics = calculate_score(output.detach().numpy().astype(np.uint8), label.detach().numpy().astype(np.uint8))
+        use_aux_loss = False
+        metrics = cal_metrics(output, label, use_aux_loss)
 
         losstotal[idx] = loss
         ioutotal[idx] = metrics["iou"]
@@ -71,8 +87,8 @@ def train(opts):
 
     # model = torchvision.models.segmentationß.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
 
-    model = unet_resnet18.ResNetUNet(n_class=2)
-    # model = UNetFormer(num_classes=2)
+    # model = unet_resnet18.ResNetUNet(n_class=2)
+    model = UNetFormer(num_classes=2)
 
     if opts["task"] == 2:
         print("process for the task 2")
@@ -83,7 +99,9 @@ def train(opts):
     model = model.float()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=opts["lr"])
-    lossfn = torch.nn.CrossEntropyLoss()
+    # lossfn = torch.nn.CrossEntropyLoss()
+    lossfn = UnetFormerLoss()
+
 
     epochs = opts["epochs"]
 
@@ -121,15 +139,10 @@ def train(opts):
             optimizer.step()
 
             lossitem = loss.item()
-            output = torch.argmax(torch.softmax(output, dim=1), dim=1)
-            if device != "cpu":
-                # print("using cpu")
-                trainmetrics = calculate_score(output.detach().cpu().numpy().astype(np.uint8),
-                                               label.detach().cpu().numpy().astype(np.uint8))
-            else:
-                print("using cpu")
-                trainmetrics = calculate_score(output.detach().numpy().astype(np.uint8),
-                                               label.detach().numpy().astype(np.uint8))
+            # output = torch.argmax(torch.softmax(output, dim=1), dim=1)
+            use_aux_loss = True
+
+            trainmetrics = cal_metrics(output, label, use_aux_loss )
 
             losstotal[idx] = lossitem
             ioutotal[idx] = trainmetrics["iou"]

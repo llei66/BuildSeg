@@ -13,4 +13,7 @@ echo $CUDA_VISIBLE_DEVICES
 #sh seg_sh/sb_train_Min_denmark_pl_2205_sampling1.sh
 #python train.py --task 2 --name combine_lidar
 #python train.py --task 1 --name image_resnet101_withweight
-python train.py --task 1 --name  deeplabv3_resnet50_withpreweight
+#python train.py --task 1 --name  deeplabv3_resnet50_withpreweight
+#python train.py --task 2 --name  simple_resNetUnet_task2
+#python train_UNetFormer.py --task 1 --name  UNetFormer --data_ratio 0.01
+python train_UNetFormer.py --task 1 --name  UNetFormer --data_ratio 1.0

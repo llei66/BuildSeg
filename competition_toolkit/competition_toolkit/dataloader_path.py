@@ -59,9 +59,13 @@ def load_lidar(lidarpath: str, size: tuple) -> torch.tensor:
 
 def download_dataset(data_type: str, task: int, get_dataset: bool = False):
     if data_type == "test":
-        paths = load_dataset("sjyhne/mapai_evaluation_data", split=f"task{str(task)}", use_auth_token=True)
+        # paths = load_dataset("sjyhne/mapai_evaluation_data", split=f"task{str(task)}", use_auth_token=True)
+        # paths = load_dataset("../../data/validation", split=f"task{str(task)}", use_auth_token=True)
+        paths = load_dataset("../../data/validation", split=data_type, use_auth_token=True)
+
+
     else:
-        paths = load_dataset("sjyhne/mapai_training_data", split=data_type)
+        paths = load_dataset("../../data/train", split=data_type)
 
     if get_dataset:
         return paths
@@ -91,6 +95,7 @@ class ImageAndLabelDataset(Dataset):
         pathdict = self.paths[idx]
 
         imagefilepath = pathdict["image"]
+        import ipdb; ipdb.set_trace()
         labelfilepath = pathdict["mask"]
 
         assert imagefilepath.split("/")[-1] == labelfilepath.split("/")[
@@ -192,9 +197,9 @@ def create_dataloader(opts: dict, datatype: str = "test") -> DataLoader:
 
 if __name__ == "__main__":
 
-    opts = load(open("config/massachusetts.yaml"), Loader=Loader)
+    opts = load(open("config/data_1.yaml"), Loader=Loader)
 
-    testloader = create_dataloader(opts, "test")
+    testloader = create_dataloader(opts, "train")
 
     for batch in testloader:
         image, label, filename = batch

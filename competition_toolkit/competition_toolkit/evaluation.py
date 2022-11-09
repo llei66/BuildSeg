@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from eval_functions import iou, biou
-from dataloader import download_dataset
+from dataloader_path import download_dataset
 
 
 def calculate_score(preds: np.array, tars: np.array) -> dict:
