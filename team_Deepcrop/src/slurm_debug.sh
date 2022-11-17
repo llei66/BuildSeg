@@ -3,7 +3,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4 --mem=32G
 #SBATCH --job-name="seg"
-#SBATCH -p gpu --gres=gpu:1 -x hendrixgpu09fl,hendrixgpu10fl,hendrixgpu11fl,hendrixgpu12fl,hendrixgpu13fl
+#SBATCH -p ml4good --gres=gpu:1 -x hendrixgpu09fl,hendrixgpu10fl,hendrixgpu11fl,hendrixgpu12fl,hendrixgpu13fl
 #SBATCH --time=4-15:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=lilei@di.ku.dk
@@ -27,6 +27,6 @@ echo "try for using the tverskyloss"s
 #python train_withSOTA.py --task 1 --name deeplabv3_resnet50_with_pretrain_tverskyloss --data_ratio 1.0
 #python train_withSOTA.py --task 1 --name UnetPlusPlus_resnet34 --data_ratio 1.0
 
-python train_segformer.py --task 1 --name segformer_croloss --data_ratio 1.0 --config config/data_segformer.yaml
-#python train_ConvNet.py --task 1 --name segformer_croloss --data_ratio 0.01 --config config/data_segformer.yaml
+#python train_segformer.py --task 1 --name segformer_croloss --data_ratio 1.0 --config config/data_segformer.yaml
+python train_ConvNet_aug.py --task 1 --name conv_croloss_aug --data_ratio 1.0 --config config/data_conv.yaml
 

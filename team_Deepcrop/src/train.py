@@ -21,6 +21,8 @@ from models.geoseg.losses import *
 # from models.geoseg.datasets.uavid_dataset import *
 from models.geoseg.models.UNetFormer import UNetFormer
 
+import ipdb
+
 def test(opts, dataloader, model, lossfn):
     model.eval()
 
@@ -36,8 +38,8 @@ def test(opts, dataloader, model, lossfn):
         image = image.to(device)
         label = label.to(device)
 
-        # output = model(image)["out"]
-        output = model(image)
+        output = model(image)["out"]
+        # output = model(image)
 
         loss = lossfn(output, label).item()
 
@@ -69,9 +71,12 @@ def train(opts):
     # model = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=opts["num_classes"])
     # model = torchvision.models.segmentation.fcn_resnet101(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
 
-    # model = torchvision.models.segmentationß.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
+    model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
+    # model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
+    # model = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
+    # model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=False)
 
-    model = unet_resnet18.ResNetUNet(n_class=2)
+    # model = unet_resnet18.ResNetUNet(n_class=2)
     # model = UNetFormer(num_classes=2)
 
     if opts["task"] == 2:
@@ -83,7 +88,8 @@ def train(opts):
     model = model.float()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=opts["lr"])
-    lossfn = torch.nn.CrossEntropyLoss()
+    # lossfn = torch.nn.CrossEntropyLoss()
+    lossfn = BinaryTverskyLoss()
 
     epochs = opts["epochs"]
 
@@ -110,9 +116,9 @@ def train(opts):
 
             # import ipdb; ipdb.set_trace()
             # output = model(image)["out"]
-            output = model(image)
+            output = model(image)["out"]
 
-
+            # ipdb.set_trace()
             loss = lossfn(output, label)
             wandb.log({"loss":loss})
 

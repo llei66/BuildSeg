@@ -22,6 +22,15 @@ from models.geoseg.losses import *
 # from models.geoseg.models.UNetFormer import UNetFormer
 from models.geoseg.models.FTUNetFormer import FTUNetFormer
 
+from torch.utils.data import DataLoader
+from models.geoseg.losses import *
+# from models.geoseg.datasets.vaihingen_dataset import *
+from models.geoseg.models.FTUNetFormer import ft_unetformer
+from catalyst.contrib.nn import Lookahead
+## new version
+# from catalyst.contrib.optimizers.lookahead import Lookahead
+
+from catalyst import utils
 import ipdb
 
 def cal_metrics(output, label, use_aux_loss):
@@ -90,6 +99,8 @@ def train(opts):
     # model = torchvision.models.segmentationß.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
 
     # model = unet_resnet18.ResNetUNet(n_class=2)
+    num_classes = 2
+    ignore_index = None
     model = FTUNetFormer(num_classes=2)
 
     if opts["task"] == 2:
@@ -100,9 +111,32 @@ def train(opts):
     model.to(device)
     model = model.float()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=opts["lr"])
+#### default parameter for lr with pre-trained model
+    # lr = 6e-4
+    # weight_decay = 2.5e-4
+    # backbone_lr = 6e-5
+    # backbone_weight_decay = 2.5e-4
+    # accumulate_n = 1
+
+    ## change to the train from scratch
+    lr = opts["lr"]
+    weight_decay = 2.5e-3
+    backbone_lr = lr
+    backbone_weight_decay = 2.5e-3
+    accumulate_n = 1
+    net = ft_unetformer(pretrained=True,num_classes=num_classes, decoder_channels=256)
+
+    layerwise_params = {"backbone.*": dict(lr=backbone_lr, weight_decay=backbone_weight_decay)}
+    net_params = utils.process_model_params(net, layerwise_params=layerwise_params)
+    base_optimizer = torch.optim.AdamW(net_params, lr=lr, weight_decay=weight_decay)
+    optimizer = Lookahead(base_optimizer)
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=15, T_mult=2)
+
+    # optimizer = torch.optim.Adam(model.parameters(), lr=opts["lr"])
     # lossfn = torch.nn.CrossEntropyLoss()
-    lossfn = UnetFormerLoss()
+    # lossfn = UnetFormerLoss()
+    lossfn = JointLoss(SoftCrossEntropyLoss(smooth_factor=0.05, ignore_index=ignore_index),
+                     DiceLoss(smooth=0.05, ignore_index=ignore_index), 1.0, 1.0)
 
 
     epochs = opts["epochs"]
@@ -139,6 +173,11 @@ def train(opts):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            ### backward from FTUnetFormer
+
+
+            # return {"loss": loss}
 
             lossitem = loss.item()
             # output = torch.argmax(torch.softmax(output, dim=1), dim=1)
@@ -199,10 +238,11 @@ if __name__ == "__main__":
     parser.add_argument("--data_ratio", type=float, default=1.0,
                         help="Percentage of the whole dataset that is used")
     parser.add_argument("--name", type=str, default="run_seg")
+    parser.add_argument("--wandb", type=str, default="disabled")
 
     args = parser.parse_args()
     wandb.init(
-        # mode="disabled",
+        mode=args.wandb,
                 project="BuildingSeg",
                entity="lennylei",
                config={

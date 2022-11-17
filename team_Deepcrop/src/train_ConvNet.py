@@ -4,7 +4,6 @@ import numpy as np
 from yaml import load, dump, Loader, Dumper
 from tqdm import tqdm
 import torch
-import torchvision
 from tabulate import tabulate
 import wandb
 from torch import nn
@@ -12,21 +11,23 @@ import argparse
 import time
 
 from competition_toolkit.dataloader import create_dataloader
+# from data.dataloader_building import create_dataloader
 from utils import create_run_dir, store_model_weights, record_scores
 
 from competition_toolkit.eval_functions import calculate_score
-from models import unet_resnet18
 
-from models.geoseg.losses import *
+# from semseg.losses import *
 # from models.geoseg.datasets.uavid_dataset import *
 # from models.geoseg.models.UNetFormer import UNetFormer
-from models.geoseg.models.FTUNetFormer import FTUNetFormer
+# from semseg.models.backbones.convnext import ConvNeXt
+from semseg.models.heads import *
+
+from semseg.models import *
 
 import ipdb
 
 def cal_metrics(output, label, use_aux_loss):
     # use_aux_loss = True
-    # ipdb.set_trace()
 
     if use_aux_loss:
         output = nn.Softmax(dim=1)(output[0])
@@ -82,15 +83,17 @@ def test(opts, dataloader, model, lossfn):
 def train(opts):
     device = opts["device"]
     print(device)
-
     # The current model should be swapped with a different one of your choice
     # model = torchvision.models.segmentation.fcn_resnet50(pretrained=False, num_classes=opts["num_classes"])
     # model = torchvision.models.segmentation.fcn_resnet101(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
-
+    # ipdb.set_trace()
     # model = torchvision.models.segmentationß.deeplabv3_resnet50(pretrained=False, num_classes=opts["num_classes"], pretrained_backbone=True)
 
     # model = unet_resnet18.ResNetUNet(n_class=2)
-    model = FTUNetFormer(num_classes=2)
+    # model = eval('SegFormer')(backbone='MiT-B3',num_classes=2)
+    model = eval('SegFormer')(backbone='ConvNeXt-T',num_classes=2)
+
+    # model = eval()
 
     if opts["task"] == 2:
         print("process for the task 2")
@@ -101,8 +104,8 @@ def train(opts):
     model = model.float()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=opts["lr"])
-    # lossfn = torch.nn.CrossEntropyLoss()
-    lossfn = UnetFormerLoss()
+    lossfn = torch.nn.CrossEntropyLoss()
+    # lossfn = UnetFormerLoss()
 
 
     epochs = opts["epochs"]
@@ -111,6 +114,7 @@ def train(opts):
     valloader = create_dataloader(opts, "validation")
 
     bestscore = 0
+    bestiou = 0
 
     for e in range(epochs):
 
@@ -157,8 +161,7 @@ def train(opts):
         trainbiou = round(bioutotal.mean(), 4)
         trainscore = round(scoretotal.mean(), 4)
 
-        wandb.log({"loss":loss, "testloss": testloss, "trainloss": trainloss, "testiou": testiou, "testbiou": testbiou,"trainbiou":trainbiou, "trainiou": trainiou, "trainscore": trainscore})
-        wandb.watch(model)
+
 
         if testscore > bestscore:
             bestscore = testscore
@@ -167,10 +170,25 @@ def train(opts):
         else:
             store_model_weights(opts, model, f"last", epoch=e)
 
-        print("")
+        ## save the IOU best model
+
+        if testiou > bestiou:
+            bestiou = testiou
+            print("new best iou:", bestiou, "- saving model weights")
+            store_model_weights(opts, model, f"best_iou", epoch=e)
+        else:
+            store_model_weights(opts, model, f"last_iou", epoch=e)
+
+        wandb.log({"loss":loss, "testloss": testloss, "trainloss": trainloss, "testiou": testiou, "testbiou": testbiou,"trainbiou":trainbiou, "trainiou": trainiou, "trainscore": trainscore})
+        wandb.log({"bestscore" : bestscore, "bestiou": bestiou})
+        wandb.watch(model)
         print(tabulate(
-            [["train", trainloss, trainiou, trainbiou, trainscore], ["test", testloss, testiou, testbiou, testscore]],
-            headers=["Type", "Loss", "IoU", "BIoU", "Score"]))
+             [["train", trainloss, trainiou, trainbiou, trainscore]],
+             headers=["Type", "Loss", "IoU", "BIoU", "Score"]))
+
+        print(tabulate(
+            [["test", testloss, testiou, testbiou, testscore, bestscore, bestiou]],
+            headers=["Type", "Loss", "IoU", "BIoU", "Score", "BestScore", "Bestiou"]))
 
         scoredict = {
             "epoch": e,

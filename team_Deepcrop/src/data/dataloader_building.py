@@ -7,7 +7,48 @@ import os
 import torch
 import cv2 as cv
 import numpy as np
-# from semseg.augmentations import *
+import kornia.augmentation as K
+import torch.nn as nn
+from semseg.augmentations import *
+
+# class MyAugmentationPipeline(nn.Module):
+#    def __init__(self) -> None:
+#       super(MyAugmentationPipeline, self).__init__()
+#       self.aff = K.RandomAffine(360)
+#       self.jit = K.ColorJiggle(0.2, 0.3, 0.2, 0.3)
+#
+#    def forward(self, input, mask):
+#       assert input.shape == mask.shape,
+#          f"Input shape should be consistent with mask shape, "
+#          f"while got {input.shape}, {mask.shape}"
+#
+#       aff_params = self.aff.forward_parameters(input.shape)
+#       input = self.aff(input, aff_params)
+#       mask = self.aff(mask, aff_params)
+#
+#       jit_params = self.jit.forward_parameters(input.shape)
+#       input = self.jit(input, jit_params)
+#       mask = self.jit(mask, jit_params)
+#       return input, mask
+
+def aug_image_mask(image,label):
+    # import ipdb; ipdb.set_trace()
+    aug_both = Compose([
+        RandomResizedCrop((512, 512)),
+        RandomCrop((512, 512), p=1.0),
+        Pad((512, 512))
+
+    ])
+    # aug_img= Compose([   ColorJitter(brightness=(0.5,1.5), contrast=(1), saturation=(0.5,1.5), hue=(-0.1,0.1))
+    #
+    # ])
+    label = label.unsqueeze(0)
+
+    image, label = aug_both(image, label)
+    label = label.squeeze(0)
+
+    # image = aug_img(image)
+    return image, label
 
 def get_paths_from_folder(folder: str) -> list:
     allowed_filetypes = ["jpg", "jpeg", "png", "tif", "tiff"]
@@ -38,13 +79,11 @@ def load_image(imagepath: str, size: tuple) -> torch.tensor:
     return image
 
 
-# def aug_image()
 
 def load_label(labelpath: str, size: tuple) -> torch.tensor:
     label = cv.imread(labelpath, cv.IMREAD_GRAYSCALE)
     label[label == 255] = 1
     label = cv.resize(label, size)
-
     label = torch.tensor(label.astype(np.uint8)).long()
 
     return label
@@ -103,6 +142,11 @@ class ImageAndLabelDataset(Dataset):
         image = load_image(imagefilepath, (self.opts["imagesize"], self.opts["imagesize"]))
         label = load_label(labelfilepath, (self.opts["imagesize"], self.opts["imagesize"]))
 
+        ## add aug
+
+        image, label = aug_image_mask(image, label)
+
+
         assert image.shape[1:] == label.shape[
                                   :2], f"image and label shape not the same; {image.shape[1:]} != {label.shape[:2]}"
 
@@ -142,6 +186,10 @@ class ImageLabelAndLidarDataset(Dataset):
 
         image = load_image(imagefilepath, (self.opts["imagesize"], self.opts["imagesize"]))
         label = load_label(labelfilepath, (self.opts["imagesize"], self.opts["imagesize"]))
+
+        # add augmentation TODO
+
+        ## TODO
         lidar = load_lidar(lidarfilepath, (self.opts["imagesize"], self.opts["imagesize"]))
 
         assert image.shape[1:] == label.shape[
@@ -194,7 +242,7 @@ def create_dataloader(opts: dict, datatype: str = "test") -> DataLoader:
 
 if __name__ == "__main__":
 
-    opts = load(open("config/massachusetts.yaml"), Loader=Loader)
+    opts = load(open("../config/data.yaml"), Loader=Loader)
 
     testloader = create_dataloader(opts, "test")
 
