@@ -278,7 +278,14 @@ class Collect(object):
         data = {}
         img_meta = {}
         for key in self.meta_keys:
-            img_meta[key] = results[key]
+            # img_meta[key] = results[key]
+
+            ## debug for the tensor
+            try:
+                img_meta[key] = results[key]
+            except:
+                print(key, ' is not in the image meta transform')
+
         data['img_metas'] = DC(img_meta, cpu_only=True)
         for key in self.keys:
             data[key] = results[key]

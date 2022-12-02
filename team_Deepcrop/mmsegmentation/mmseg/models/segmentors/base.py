@@ -273,6 +273,7 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
             color_seg[seg == label, :] = color
         # convert to BGR
         color_seg = color_seg[..., ::-1]
+        # import ipdb ; ipdb.set_trace()
 
         img = img * (1 - opacity) + color_seg * opacity
         img = img.astype(np.uint8)
@@ -283,7 +284,9 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
         if show:
             mmcv.imshow(img, win_name, wait_time)
         if out_file is not None:
-            mmcv.imwrite(img, out_file)
+            # mmcv.imwrite(img, out_file)
+            mmcv.imwrite(color_seg, out_file) ## turn to save the mask only
+
 
         if not (show or out_file):
             warnings.warn('show==False and out_file is not specified, only '

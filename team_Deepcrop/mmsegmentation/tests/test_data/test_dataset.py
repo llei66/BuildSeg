@@ -39,7 +39,7 @@ def test_classes_file_path():
     tmp_file = tempfile.NamedTemporaryFile()
     classes_path = f'{tmp_file.name}.txt'
     train_pipeline = [dict(type='LoadImageFromFile')]
-    kwargs = dict(pipeline=train_pipeline, img_dir='/', classes=classes_path)
+    kwargs = dict(pipeline=train_pipeline, img_dir='./', classes=classes_path)
 
     # classes.txt with full categories
     categories = get_classes('cityscapes')

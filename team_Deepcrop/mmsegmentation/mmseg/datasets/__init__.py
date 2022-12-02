@@ -19,6 +19,10 @@ from .pascal_context import PascalContextDataset, PascalContextDataset59
 from .potsdam import PotsdamDataset
 from .stare import STAREDataset
 from .voc import PascalVOCDataset
+from .mapAIbuilding import NORAmapAIDataset
+from .mapAIbuildingLidar import NORAmapAILidarDataset
+from .custom_lidar import CustomDatasetLidar
+from .mapAIbuildingTensor import NORAmapAITensorDataset
 
 __all__ = [
     'CustomDataset', 'build_dataloader', 'ConcatDataset', 'RepeatDataset',
@@ -27,5 +31,6 @@ __all__ = [
     'PascalContextDataset59', 'ChaseDB1Dataset', 'DRIVEDataset', 'HRFDataset',
     'STAREDataset', 'DarkZurichDataset', 'NightDrivingDataset',
     'COCOStuffDataset', 'LoveDADataset', 'MultiImageMixDataset',
-    'iSAIDDataset', 'ISPRSDataset', 'PotsdamDataset', 'FaceOccludedDataset'
+    'iSAIDDataset', 'ISPRSDataset', 'PotsdamDataset', 'FaceOccludedDataset', 'NORAmapAIDataset', 'NORAmapAILidarDataset',
+    'CustomDatasetLidar', 'NORAmapAITensorDataset'
 ]

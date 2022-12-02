@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/upernet_convnext.py', '../_base_/datasets/map_building.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_20k.py'
+    '../_base_/models/upernet_convnext.py', '../_base_/datasets/map_building_lidar.py',
+    '../_base_/default_runtime.py', '../_base_/schedules/schedule_80k_debug.py'
 ]
 crop_size = (512, 512)
 model = dict(

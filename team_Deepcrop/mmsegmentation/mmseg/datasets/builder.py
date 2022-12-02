@@ -63,6 +63,47 @@ def _concat_dataset(cfg, default_args=None):
 
     return ConcatDataset(datasets, separate_eval)
 
+## add lidar dataset
+def _concat_lidar_dataset(cfg, default_args=None):
+    """Build :obj:`ConcatDataset by."""
+    from .dataset_wrappers import ConcatDataset
+    img_dir = cfg['img_dir']
+    lidar_dir = cfg['lidar_dir']
+    ann_dir = cfg.get('ann_dir', None)
+    split = cfg.get('split', None)
+    # pop 'separate_eval' since it is not a valid key for common datasets.
+    separate_eval = cfg.pop('separate_eval', True)
+    num_img_dir = len(img_dir) if isinstance(img_dir, (list, tuple)) else 1
+    if ann_dir is not None:
+        num_ann_dir = len(ann_dir) if isinstance(ann_dir, (list, tuple)) else 1
+    else:
+        num_ann_dir = 0
+    if split is not None:
+        num_split = len(split) if isinstance(split, (list, tuple)) else 1
+    else:
+        num_split = 0
+    if num_img_dir > 1:
+        assert num_img_dir == num_ann_dir or num_ann_dir == 0
+        assert num_img_dir == num_split or num_split == 0
+    else:
+        assert num_split == num_ann_dir or num_ann_dir <= 1
+    num_dset = max(num_split, num_img_dir)
+
+    datasets = []
+    for i in range(num_dset):
+        data_cfg = copy.deepcopy(cfg)
+        if isinstance(img_dir, (list, tuple)):
+            data_cfg['img_dir'] = img_dir[i]
+        if isinstance(lidar_dir, (list, tuple)):
+            data_cfg['lidar_dir'] = lidar_dir[i]
+        if isinstance(ann_dir, (list, tuple)):
+            data_cfg['ann_dir'] = ann_dir[i]
+        if isinstance(split, (list, tuple)):
+            data_cfg['split'] = split[i]
+        datasets.append(build_dataset(data_cfg, default_args))
+
+    return ConcatDataset(datasets, separate_eval)
+
 
 def build_dataset(cfg, default_args=None):
     """Build datasets."""
@@ -81,6 +122,10 @@ def build_dataset(cfg, default_args=None):
     elif isinstance(cfg.get('img_dir'), (list, tuple)) or isinstance(
             cfg.get('split', None), (list, tuple)):
         dataset = _concat_dataset(cfg, default_args)
+    elif isinstance(cfg.get('lidar_dir'), (list, tuple)) or isinstance(
+            cfg.get('split', None), (list, tuple)):
+        dataset = _concat_lidar_dataset(cfg, default_args)
+
     else:
         dataset = build_from_cfg(cfg, DATASETS, default_args)
 

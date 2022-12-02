@@ -1,6 +1,6 @@
 # dataset settings
 dataset_type = 'NORAmapAIDataset'
-data_root = '/home/dmn774/data/Deep1/benchmarks/NORA_MapAI/data'
+data_root = '/home/dmn774/data/Deep1/benchmarks/NORA_MapAI/aug_data'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size = (512, 512)
@@ -39,8 +39,8 @@ data = dict(
     train=dict(
         type=dataset_type,
         data_root=data_root,
-        img_dir='train/images',
-        ann_dir='train/masks',
+        img_dir='train_aug_5000/images',
+        ann_dir='train_aug_5000/masks',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,

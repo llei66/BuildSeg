@@ -72,7 +72,7 @@ def parse_args():
         'json_logs',
         type=str,
         nargs='+',
-        help='path of train log in json format')
+        help='path of train log in json format')a
     parser.add_argument(
         '--keys',
         type=str,

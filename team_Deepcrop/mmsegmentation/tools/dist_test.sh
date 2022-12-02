@@ -18,3 +18,4 @@ python -m torch.distributed.launch \
     $CHECKPOINT \
     --launcher pytorch \
     ${@:4}
+

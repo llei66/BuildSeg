@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/upernet_convnext.py', '../_base_/datasets/map_building.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_20k.py'
+    '../_base_/models/upernet_convnext.py', '../_base_/datasets/map_building_aug.py',
+    '../_base_/default_runtime.py', '../_base_/schedules/schedule_80k.py'
 ]
 crop_size = (512, 512)
 model = dict(
@@ -33,7 +33,7 @@ lr_config = dict(
     by_epoch=False)
 
 # By default, models are trained on 8 GPUs with 2 images per GPU
-data = dict(samples_per_gpu=8) ## default : 2
+data = dict(samples_per_gpu=16) ## default : 2
 # fp16 settings
 optimizer_config = dict(type='Fp16OptimizerHook', loss_scale='dynamic')
 # fp16 placeholder

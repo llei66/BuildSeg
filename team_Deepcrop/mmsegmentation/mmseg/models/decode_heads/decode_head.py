@@ -261,9 +261,12 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
     def losses(self, seg_logit, seg_label):
         """Compute segmentation loss."""
         loss = dict()
+        #import ipdb; ipdb.set_trace()
         seg_logit = resize(
             input=seg_logit,
-            size=seg_label.shape[2:],
+            size=seg_label.shape[2:], ## default (2,1 ,512, 512)
+            # size=seg_label.shape[1:], ## (2, 500, 500)
+
             mode='bilinear',
             align_corners=self.align_corners)
         if self.sampler is not None:
