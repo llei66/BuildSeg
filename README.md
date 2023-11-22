@@ -16,7 +16,9 @@ sbatch slurm.sh
 ```
 
 
-For others: check "README_config.md"
+For data details and evaluation:
+
+[README_config.md](https://github.com/llei66/BuildSeg/blob/master/README_config.md)
 
 
 
