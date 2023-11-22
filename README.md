@@ -3,7 +3,7 @@
 
 Download the data:
 
-NORA_MapAI 
+[NORA_MapAI](https://huggingface.co/datasets/sjyhne/mapai_training_data) 
 
 ```angular2html
 
